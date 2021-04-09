@@ -22,7 +22,7 @@ The timestamps and attributes are considered by their indices (fourth attribute 
 
 ### Data
 
-The database used is the `AirQualityUCI.csv` one. The =pre_processing.py= script cleans it and save it in `AirQualityUCI.npy` as a 2D numpy array.
+The database used is the `AirQualityUCI.csv` one. The `pre_processing.py` script cleans it and save it in `AirQualityUCI.npy` as a 2D numpy array.
 This dataset contains 389 cycles, each cycle contains 24 observations over 13 attributes.
 
 ### Seasons
