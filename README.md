@@ -22,23 +22,23 @@ The timestamps and attributes are considered by their indices (fourth attribute 
 
 ### Data
 
-The database used is the =AirQualityUCI.csv= one. The =pre_processing.py= script cleans it and save it in =AirQualityUCI.npy= as a 2D numpy array.
+The database used is the `AirQualityUCI.csv` one. The =pre_processing.py= script cleans it and save it in `AirQualityUCI.npy` as a 2D numpy array.
 This dataset contains 389 cycles, each cycle contains 24 observations over 13 attributes.
 
 ### Seasons
 
-This section is about the approach by seasons ~MSGP_seasons~.
+This section is about the approach by seasons `MSGP_seasons`.
 The graduality of an attribute is encoded by 1 if increasing, -1 if decreasing and 0 otherwise.
-A transaction database collection (~Gamma~) is encoded as a 3D numpy array ((k, M, I)).
+A transaction database collection (`Gamma`) is encoded as a 3D numpy array ((k, M, I)).
 First dimension corresponds to a starting stage for the season considered (e.g. 2 when starting at the third stage of the cycle).
 Second dimension corresponds to the cycles.
 Third corresponds to the graduality of the attribute.
-For a season size l, ~Gamma[i][j][m]~ is the graduality of attribute ~m~ over the season of size l starting from stage ~i~, in cycle ~j~.
+For a season size l, `Gamma[i][j][m]` is the graduality of attribute `m` over the season of size l starting from stage `i`, in cycle `j`.
 A gradual pattern is encoded as tuple of two frozensets: the first one gives the indices of the increasing attributes, the second one contains the indices of the decreasing attributes.
 The results are stored in a dictionary of dictionaries, mapping each starting stage and length (which defines a season) to the set of according frequent gradual patterns (res[start][k] = patterns).
 There is a difficulty in the algorithm, when considering inter-season periods: indeed, to compute the corresponding gradual signature one has to fetch data from the following season. This must be considered at the initialization, and in the intersection.
 
-To run the function over the Air Quality dataset, one only has to load data ~data = np.load('AirQualityUCI.npy)~ and then ~MSGP_seasons(data.reshape((389, 24, 13)), minSup)~.
+To run the function over the Air Quality dataset, one only has to load data `data = np.load('AirQualityUCI.npy)` and then `MSGP_seasons(data.reshape((389, 24, 13)), minSup)`.
 
 ### Gradual patterns
 
