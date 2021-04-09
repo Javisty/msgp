@@ -33,12 +33,15 @@ def remove_non_frequent(gradualities, minSup):
     gradualities[up_non_frequent & (gradualities == 1)] = 0
     gradualities[down_non_frequent & (gradualities == -1)] = 0
 
-def print_results_seasons(results, S):
+def print_results_seasons(results, k):
+    print("Season -> gradual patterns")
     for start, length in results.items():
-        for k, patterns in length.items():
-            print("From", start, "to ", (start+k)%S, ":")
+        for l, patterns in length.items():
+            print(''.join(map(str, range(start, start+length))), ":", end=' ')
             for pattern in patterns:
-                print("Increasing:", set(pattern[0]), ", decreasing:", set(pattern[1]))
+                print('+'.join(map(str, pattern[0])) + '-'.join(map(str, pattern[1])),
+                      end=', ')
+            print()
 
 def check_pattern(season, pattern, data, minSup):
     '''Check if pattern is respected through period over data, w.r.t. minSup.
@@ -46,25 +49,25 @@ def check_pattern(season, pattern, data, minSup):
     second set contains indices of decreasing attributes.
     season: tuple, first element is the starting index of the season,
     second element is the length 0<l<k+1 of the season.'''
-    i, k = season
+    i, l = season
     increasing, decreasing = list(pattern[0]), list(pattern[1])
 
-    if i+k < data.shape[1]:
-        count_increasing = np.sum((np.diff(data[:,i:i+k,increasing], axis=1) >= 0).all(axis=(1,2)))
-        count_decreasing = np.sum((np.diff(data[:,i:i+k,decreasing], axis=1) < 0).all(axis=(1,2)))
+    if i+l < data.shape[1]:
+        count_increasing = np.sum((np.diff(data[:,i:i+l,increasing], axis=1) >= 0).all(axis=(1,2)))
+        count_decreasing = np.sum((np.diff(data[:,i:i+l,decreasing], axis=1) < 0).all(axis=(1,2)))
     else:
-        count_increasing = np.sum((np.diff(data[:-1,i:i+k,increasing], axis=1) >= 0).all(axis=(1,2)))
-        count_decreasing = np.sum((np.diff(data[:-1,i:i+k,decreasing], axis=1) < 0).all(axis=(1,2)))
+        count_increasing = np.sum((np.diff(data[:-1,i:i+l,increasing], axis=1) >= 0).all(axis=(1,2)))
+        count_decreasing = np.sum((np.diff(data[:-1,i:i+l,decreasing], axis=1) < 0).all(axis=(1,2)))
 
     return (count_increasing + count_decreasing) >= minSup
 
 def check_results_seasons(data, results, minSup):
     failed = set()
     for start, length in results.items():
-        for k, patterns in length.items():
+        for l, patterns in length.items():
             for pattern in patterns:
-                if not check_pattern((start, k), pattern, data, minSup):
-                    failed.add((start, k, pattern))
+                if not check_pattern((start, l), pattern, data, minSup):
+                    failed.add((start, l, pattern))
     print("Numbers of fail:", len(failed))
     return failed
 
