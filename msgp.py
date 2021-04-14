@@ -2,32 +2,37 @@
 Implementation of the second proposal of MSGP
 '''
 import numpy as np
+from itertools import combinations
 import utils
 
 
 def MFI(data, minSup):
-    '''Implementation of the Apriori algorithm, for gradual signature.
+    '''Implementation of the Eclat algorithm, for gradual signature.
     data is a gradual signature, of shape (M, I), with -1/0/1 values'''
+    _, I = data.shape
+
     # Find frequent gradual items
     increasing_items = np.where(np.count_nonzero(data == 1, axis=0) >= minSup)[0]
     decreasing_items = np.where(np.count_nonzero(data == -1, axis=0) >= minSup)[0]
 
-    # gradual itemsets are represented by dictionnaries mapping 1 to increasing attributes
-    itemsets = set([(frozenset({i}), frozenset()) for i in increasing_items]).union([(frozenset(), frozenset({i})) for i in decreasing_items])
-    results = itemsets.copy()
-    k = 2
+    # gradual itemsets are indexed from 0 to (2*I-1)
+    itemsets = [ (frozenset({i}), frozenset(np.where(data[:,i]==1)[0])) for i in increasing_items ]\
+        + [ (frozenset({I+i}), frozenset(np.where(data[:,i]==-1)[0])) for i in decreasing_items ]
+
+    results = set([ itemset for itemset, _ in itemsets])
+    l = 2
     while itemsets:
-        new_itemsets = set()
-        # Generate candidate itemsets of size k+1
-        candidates = set([(i[0].union(j[0]), i[1].union(j[1])) for i in itemsets for j in itemsets if len(i[0].union(j[0])) + len(i[1].union(j[1])) == k])
-        for candidate in candidates:
-            increasing_items = (np.count_nonzero((data[:, list(candidate[0])] == 1).all(axis=1)) >= minSup)
-            decreasing_items = (np.count_nonzero((data[:, list(candidate[1])] == -1).all(axis=1)) >= minSup)
-            if increasing_items and decreasing_items:
-                new_itemsets.add(candidate)
+        new_itemsets = list()
+        for idx, (itemset, tids) in enumerate(itemsets):
+            for idx2 in range(idx+1, len(itemsets)):
+                itemset2, tids2 = itemsets[idx2]
+                if sorted(list(itemset))[l-2] == sorted(list(itemset2))[l-2]:
+                    intersect = tids.intersection(tids2)
+                    if len(intersect) >= minSup:
+                        new_itemset = itemset.intersection(itemset2)
+                        new_itemsets.append((new_itemset, intersect))
+                        results.add(new_itemset)
         itemsets = new_itemsets
-        k += 1
-        results = results.union(itemsets)
 
     return results
 
@@ -41,7 +46,7 @@ def MFCCP(Gamma, k, minSup, verbose):
     # In case of verbose
     verboseprint = print if verbose else lambda *a, **k: None
 
-    res = dict([(i, dict()) for i in range(S)])
+    res = dict([(i, dict()) for i in range(k)])
     M, I = Gamma.shape[1:]
     l = 1
     to_visit = range(k)
@@ -53,7 +58,7 @@ def MFCCP(Gamma, k, minSup, verbose):
             patterns = MFI(Gamma[i], minSup)
             if patterns:
                 Lambda.append(i)
-                res[i][l] = patterns
+                res[i][l] = patterns.copy()
             if i == k-1:  # handle inter-season difficulty
                 Gamma[i] = intersect(Gamma[i], np.vstack((Gamma[0][1:,:], np.zeros((1,I)))))
             else:
@@ -130,7 +135,7 @@ def MFSP(Gamma, S, minSup):
 
 
 
-def MSGP_patterns(data, S, minSup):
+def MSGP_patterns(data, k, minSup):
     '''
     Mining Seasonal Gradual Pattern. Returns all the frequent seasonal
     gradual patterns in data.
@@ -139,19 +144,18 @@ def MSGP_patterns(data, S, minSup):
 
     Parameters:
     -----------
-    data (numpy.array): an array of shape (N=M*S, I) with numerical values.
-    First dimension stands for the timestamps (S by season), second one for
+    data (numpy.array): an array of shape (N=M*k, I) with numerical values.
+    First dimension stands for the timestamps (k by cycle), second one for
     the attribute values. The database should be complete.
 
-    S (int): the seasonality of the data.
+    k (int): the cycle-length of the data.
 
     minSup (integer): the minimum number of seasons where a pattern
     should occur to be frequent.
 
     Output:
     -------
-    delta (list): list of the frequent seasonal patterns (see the class
-    module to learn about the class SeasonalGradualPattern).
+    delta (list): list of the frequent seasonal patterns.
     '''
     M, I = data.shape
 

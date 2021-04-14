@@ -33,14 +33,18 @@ def remove_non_frequent(gradualities, minSup):
     gradualities[up_non_frequent & (gradualities == 1)] = 0
     gradualities[down_non_frequent & (gradualities == -1)] = 0
 
-def print_results_seasons(results, k):
+def print_results_seasons(results, k, I):
     print("Season -> gradual patterns")
     for start, length in results.items():
         for l, patterns in length.items():
-            print(''.join(map(str, range(start, start+length))), ":", end=' ')
+            print("From", start, "to", (start+l)%k, "->", end=' ')
             for pattern in patterns:
-                print('+'.join(map(str, pattern[0])) + '-'.join(map(str, pattern[1])),
-                      end=', ')
+                for item in pattern:
+                    if item < I:  # increasing item
+                        print(str(item) + str('+'), end='')
+                    else:  # decreasing item
+                        print(str(item-I) + str('-'), end='')
+                    print(', ', end='')
             print()
 
 def check_pattern(season, pattern, data, minSup):
