@@ -2,7 +2,7 @@
 Implementation of the second proposal of MSGP
 '''
 import numpy as np
-from itertools import combinations
+from itertools import chain, combinations
 import utils
 
 
@@ -21,19 +21,19 @@ def MFI(data, minSup):
 
     results = set([ itemset for itemset, _ in itemsets])
     l = 2
-    while itemsets:
+    while itemsets and l <= I:
         new_itemsets = list()
         for idx, (itemset, tids) in enumerate(itemsets):
             for idx2 in range(idx+1, len(itemsets)):
                 itemset2, tids2 = itemsets[idx2]
-                if sorted(list(itemset))[l-2] == sorted(list(itemset2))[l-2]:
+                if sorted(list(itemset))[:l-2] == sorted(list(itemset2))[:l-2]:
                     intersect = tids.intersection(tids2)
                     if len(intersect) >= minSup:
-                        new_itemset = itemset.intersection(itemset2)
+                        new_itemset = itemset.union(itemset2)
                         new_itemsets.append((new_itemset, intersect))
                         results.add(new_itemset)
         itemsets = new_itemsets
-
+        l += 1
     return results
 
 def intersect(data1, data2):
@@ -170,3 +170,57 @@ def MSGP_patterns(data, k, minSup):
     SI = MFSP(Gamma, S, minSup)
 
     pass
+
+##################### Brute Force #####################
+# Test every possible seasonal gradual pattern
+# Used to validate the results of the two previous algorithms
+
+def brute_force(data, k, minSup, format='season'):
+    '''
+    Returns all the frequent seasonal gradual patterns in data.
+    Brute Force proceeds by scanning the database for each seasonal
+    gradual pattern. Very computational-heavy, however we are sure
+    the results are good.
+    Attributes and timestamps will be considered as indices, the decoding
+    is left to the user.
+
+    Parameters:
+    -----------
+    data (numpy.array): an array of shape (N=M*k, I) with numerical values.
+    First dimension stands for the timestamps (k by cycle), second one for
+    the attribute values. The database should be complete.
+
+    k (int): the cycle-length of the data.
+
+    minSup (integer): the minimum number of seasons where a pattern
+    should occur to be frequent.
+
+    format ('season' or 'pattern'): choose the format of the output structure.
+    'season' is same as the output of MSGP_seasons, 'pattern' is like
+    MSGP_patterns.
+
+    Output:
+    -------
+    delta (list): list of the frequent seasonal patterns.
+    '''
+    N, I = data.shape
+    M = N//k
+
+    if format == 'season':
+        results = dict()
+        for start in range(k): # enumerate all seasons
+            results[start] = dict()
+            for length in range(1, k+1):
+                results[start][length] = set()
+
+                # enumerate all gradual patterns
+                grad_patterns = chain.from_iterable(combinations(range(2*I), l)
+                                                    for l in range(1, 2*I+1))
+
+                # Check each pattern over the current season
+                for pattern in grad_patterns:
+                    if utils.check_pattern((start, length), set(pattern),
+                                           data.reshape((M,k,I)), minSup):
+                        results[start][length].add(frozenset(pattern))
+
+    return results

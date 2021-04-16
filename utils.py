@@ -49,21 +49,29 @@ def print_results_seasons(results, k, I):
 
 def check_pattern(season, pattern, data, minSup):
     '''Check if pattern is respected through period over data, w.r.t. minSup.
-    pattern: tuple, first set contains indices of increasing attributes,
-    second set contains indices of decreasing attributes.
+    pattern (set): contains the gradual items encoded from 0 to 2*I-1
     season: tuple, first element is the starting index of the season,
     second element is the length 0<l<k+1 of the season.'''
-    i, l = season
-    increasing, decreasing = list(pattern[0]), list(pattern[1])
+    M, k, I = data.shape
+    s, l = season
+    increasing = [ i for i in list(pattern) if i<I]
+    decreasing = [ i-I for i in list(pattern) if i>=I]
 
-    if i+l < data.shape[1]:
-        count_increasing = np.sum((np.diff(data[:,i:i+l,increasing], axis=1) >= 0).all(axis=(1,2)))
-        count_decreasing = np.sum((np.diff(data[:,i:i+l,decreasing], axis=1) < 0).all(axis=(1,2)))
+    if s+l < k:  # not cross-cycle season
+        respected_incr = np.all((np.diff(data[:,s:s+l+1,increasing], axis=1) >= 0), axis=(1,2))
+        respected_decr = np.all((np.diff(data[:,s:s+l+1,decreasing], axis=1) < 0), axis=(1,2))
+
+    else:  # remove last cycle
+        season_data = data.reshape((M*k, I))[s:-(k-s),:].reshape((M-1,k,I))
+        respected_incr = np.all(np.diff(season_data[:,:l+1,increasing], axis=1) >= 0, axis=(1,2))
+        respected_decr = np.all(np.diff(season_data[:,:l+1,decreasing], axis=1) < 0, axis=(1,2))
+
+    if not increasing:  # no increase gradual item in pattern
+        return np.count_nonzero(respected_decr) >= minSup
+    elif not decreasing:
+        return np.count_nonzero(respected_incr) >= minSup
     else:
-        count_increasing = np.sum((np.diff(data[:-1,i:i+l,increasing], axis=1) >= 0).all(axis=(1,2)))
-        count_decreasing = np.sum((np.diff(data[:-1,i:i+l,decreasing], axis=1) < 0).all(axis=(1,2)))
-
-    return (count_increasing + count_decreasing) >= minSup
+        return np.count_nonzero(respected_incr & respected_decr) >= minSup
 
 def check_results_seasons(data, results, minSup):
     failed = set()
@@ -87,6 +95,16 @@ def check_testcases(dirpath, algo, minSup):
                 print("Testcase", testcase, "failed")
                 failed.add(failure_testcase)
     return failed
+
+def compare_results_seasons(res1, res2):
+    '''Returns the differences between the gradual patterns
+    stored in res1 and res2, in the season format.'''
+    diff = set()
+    for start, length in res1.items():
+        for l, patterns in length.items():
+            if not (patterns == res2[start][l]):
+                diff.add((start, l))
+    return diff
 
 def count_patterns_seasons(patterns):
     '''Return the number of patterns contained in patterns,
