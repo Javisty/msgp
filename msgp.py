@@ -63,11 +63,12 @@ def MFCCP(Gamma, k, minSup, verbose):
                 Gamma[i] = intersect(Gamma[i], np.vstack((Gamma[0][1:,:], np.zeros((1,I)))))
             else:
                 Gamma[i] = intersect(Gamma[i], Gamma[i+1])
-        verboseprint("Patterns for seasons of size", l, "found.", len(to_visit),
+        verboseprint("Size", l, "done.", len(to_visit),
               "candidates to visit for size ", l+1, end='\r')
         l +=1
         to_visit = Lambda[:]
 
+    verboseprint("End of MSGP_seasons")
     return res
 
 def MSGP_seasons(data, minSup, verbose=True):
@@ -96,6 +97,8 @@ def MSGP_seasons(data, minSup, verbose=True):
     # Number of seasons, season length and number of attributes
     M, k, I = data.shape
 
+    verboseprint("Beginning of MSGP_seasons:", M, k, I, minSup)
+
     Gamma = np.zeros((k, M, I), dtype=np.int8)
     verboseprint("Initialization...", end='\r')
     for stage in range(k):
@@ -112,7 +115,6 @@ def MSGP_seasons(data, minSup, verbose=True):
     return MFCCP(Gamma, k, minSup, verbose)
 
 ##################### Second algorithm #####################
-# UNCOMPLETE
 
 def CFS(w, k, m):
     '''We suppose m != 1'''
@@ -163,6 +165,7 @@ def MFSP(Gamma, k, minSup):
         candidates = psi
         l += 1
 
+    verboseprint("End of MSGP_patterns")
     return results
 
 def MSGP_patterns(data, k, minSup):
@@ -187,8 +190,11 @@ def MSGP_patterns(data, k, minSup):
     -------
     delta (list): list of the frequent seasonal patterns.
     '''
-    M, I = data.shape
+    N, I = data.shape
 
+    verboseprint = print if verbose else lambda *a, **k: None
+
+    verboseprint("Beginning of MSGP_patterns:", N//k, k, I, minSup)
     Gamma = dict()
     for i in range(2*I):  # enumerate all gradual items
         Gamma[frozenset([i])] = utils.cover(i, data)
@@ -231,6 +237,9 @@ def brute_force(data, k, minSup, format='season'):
     N, I = data.shape
     M = N//k
 
+    verboseprint = print if verbose else lambda *a, **k: None
+
+    verboseprint("Beginning of Brute Force:", M, k, I, minSup)
     if format == 'season':
         results = dict()
         for start in range(k): # enumerate all seasons
@@ -261,4 +270,5 @@ def brute_force(data, k, minSup, format='season'):
                                            data.reshape((M, k, I)), minSup):
                         results[p].add((start, length))
 
+    verboseprint("End of Brute Force")
     return results
