@@ -63,7 +63,7 @@ def MFCCP(Gamma, k, minSup, verbose):
                 Gamma[i] = intersect(Gamma[i], np.vstack((Gamma[0][1:,:], np.zeros((1,I)))))
             else:
                 Gamma[i] = intersect(Gamma[i], Gamma[i+1])
-        verboseprint("Patterns for periods of size", l, "found.", len(to_visit),
+        verboseprint("Patterns for seasons of size", l, "found.", len(to_visit),
               "candidates to visit for size ", l+1, end='\r')
         l +=1
         to_visit = Lambda[:]
@@ -114,26 +114,56 @@ def MSGP_seasons(data, minSup, verbose=True):
 ##################### Second algorithm #####################
 # UNCOMPLETE
 
-def CFP(w, N, m):
-    pass
+def CFS(w, k, m):
+    '''We suppose m != 1'''
+    if not w:
+        return set()
+    l = 1
+    sub = w[0]
+    occ = dict()
 
-def MFSP(Gamma, S, minSup):
+    for i in w[1:]:
+        for j in range(l):
+            if ((sub+j)%k, l-j) in occ:
+                occ[((sub+j)%k, l-j)] += 1
+            else:
+                occ[((sub+j)%k, l-j)] = 1
+
+        if (i != (sub+l)%k):
+            l = 1
+            sub = i
+        elif (l == k):
+            sub += 1
+        else:
+            l += 1
+    return set([season for season, occs in occ.items() if occs >= m])
+
+def MFSP(Gamma, k, minSup):
     I = len(Gamma.keys())//2
-    k = 1
+    l = 1
 
-    candidates = set([(frozenset([i]), frozenset()) for i in range(I)])
-    candidates = candidates.update([(frozenset(), frozenset([i])) for i in range(I)])
+    candidates = set([frozenset([i]) for i in range(2*I)])
 
+    modulo = lambda d: d%k
     results = dict()
-    while candidates and k <= I:
+    while candidates and l <= I:
         psi = set()
         for p in candidates:
-            modulo = (np.where(Gamma[p])[0])%S
-            periods = CFS(modulo, S, minSup)
-            if periods:
-                results[p] = periods
+            seasons = CFS(list(map(modulo, Gamma[p])), k, minSup)
 
+            if seasons:
+                results[p] = seasons
 
+                for p_prime in candidates:
+                    g = p.union(p_prime)
+                    if len(g) == l+1:
+                        Gamma[g] = sorted(set(Gamma[p]) & set(Gamma[p_prime]))
+                        psi.add(g)
+
+        candidates = psi
+        l += 1
+
+    return results
 
 def MSGP_patterns(data, k, minSup):
     '''
@@ -160,16 +190,11 @@ def MSGP_patterns(data, k, minSup):
     M, I = data.shape
 
     Gamma = dict()
-    for i in range(I):
-        grad_incr = (frozenset([i]), frozenset())
-        grad_decr = (frozenset(), frozenset([i]))
+    for i in range(2*I):  # enumerate all gradual items
+        Gamma[frozenset([i])] = utils.cover(i, data)
 
-        Gamma[grad_incr] = utils.cover((i, True), data)
-        Gamma[grad_decr] = utils.cover((i, False), data)
+    return MFSP(Gamma, k, minSup)
 
-    SI = MFSP(Gamma, S, minSup)
-
-    pass
 
 ##################### Brute Force #####################
 # Test every possible seasonal gradual pattern
@@ -222,5 +247,18 @@ def brute_force(data, k, minSup, format='season'):
                     if utils.check_pattern((start, length), set(pattern),
                                            data.reshape((M,k,I)), minSup):
                         results[start][length].add(frozenset(pattern))
+
+    else:
+        results = dict()
+
+        grad_patterns = chain.from_iterable(combinations(range(2*I), l)
+                                                         for l in range(1, 2*I+1))
+        for p in grad_patterns:  # enumerate all gradual patterns
+            results[p] = set()
+            for start in range(k):  # enumerate all seasons
+                for length in range(1, k+1):
+                    if utils.check_pattern((start, length), set(p),
+                                           data.reshape((M, k, I)), minSup):
+                        results[p].add((start, length))
 
     return results

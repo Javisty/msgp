@@ -106,6 +106,18 @@ def compare_results_seasons(res1, res2):
                 diff.add((start, l))
     return diff
 
+def compare_results_patterns(res1, res2):
+    '''Returns the differences between the gradual patterns
+    stored in res1 and res2, in the pattern format.'''
+    diff = set()
+    for pattern, seasons in res1.items():
+        seasons2 = res2.get(pattern)
+        if not(seasons2) and seasons:
+            diff.add(pattern)
+        elif seasons != seasons2:
+            diff.add(pattern)
+    return diff
+
 def count_patterns_seasons(patterns):
     '''Return the number of patterns contained in patterns,
     with the result format of MSGP_season'''
@@ -114,9 +126,11 @@ def count_patterns_seasons(patterns):
 
 def cover(i, data):
     '''Returns the list of timestamps such that i is respected on the
-    following.
-    i is a gradual item, encoded as (attribute, bool) where bool is True
-    when the increase is considered'''
-    M, _ = data.shape
+    following transition.
+    i is a gradual item, <I if increasing, >=I otherwise.'''
+    _, I = data.shape
 
-    return np.where((np.diff(data[:,i[0]]) >= 0) == i[1])[0]
+    if i < I:  # increase
+        return np.where(np.diff(data[:,i]) >= 0)[0]
+    else:  # decrease
+        return np.where(np.diff(data[:,I-i]) < 0)[0]
