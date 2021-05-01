@@ -47,6 +47,15 @@ def print_results_seasons(results, k, I):
                     print(', ', end='')
             print()
 
+def print_results_patterns(results, k, I):
+    print("Pattern -> seasons")
+    for pattern, seasons in results.items():
+        print(*[str(i)+"+" if i<I else str(i-I)+"-" for i in pattern],
+              sep=',', end=" -> ")
+        for start, length in seasons:
+            print(start, "-", (start+length)%k, sep='', end=', ')
+        print()
+
 def check_pattern(season, pattern, data, minSup):
     '''Check if pattern is respected through period over data, w.r.t. minSup.
     pattern (set): contains the gradual items encoded from 0 to 2*I-1
