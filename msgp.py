@@ -125,19 +125,20 @@ def CFS(w, k, m):
     occ = dict()
 
     for i in w[1:]:
-        for j in range(l):
-            if ((sub+j)%k, l-j) in occ:
-                occ[((sub+j)%k, l-j)] += 1
-            else:
-                occ[((sub+j)%k, l-j)] = 1
-
         if (i != (sub+l)%k):
             l = 1
             sub = i
-        elif (l == k):
-            sub += 1
         else:
-            l += 1
+            for j in range(l):
+                if ((sub+j)%k, l-j) in occ:
+                    occ[((sub+j)%k, l-j)] += 1
+                else:
+                    occ[((sub+j)%k, l-j)] = 1
+            if l == k:
+                sub = (sub+1)%k
+            else:
+                l += 1
+
     return set([season for season, occs in occ.items() if occs >= m])
 
 def MFSP(Gamma, k, minSup):
@@ -158,17 +159,16 @@ def MFSP(Gamma, k, minSup):
 
                 for p_prime in candidates:
                     g = p.union(p_prime)
-                    if len(g) == l+1:
+                    if len(g) == l+1 and not g in Gamma:
                         Gamma[g] = sorted(set(Gamma[p]) & set(Gamma[p_prime]))
                         psi.add(g)
 
         candidates = psi
         l += 1
 
-    verboseprint("End of MSGP_patterns")
-    return results
+    return results, Gamma
 
-def MSGP_patterns(data, k, minSup):
+def MSGP_patterns(data, k, minSup, verbose=True):
     '''
     Mining Seasonal Gradual Pattern. Returns all the frequent seasonal
     gradual patterns in data.
@@ -197,7 +197,7 @@ def MSGP_patterns(data, k, minSup):
     verboseprint("Beginning of MSGP_patterns:", N//k, k, I, minSup)
     Gamma = dict()
     for i in range(2*I):  # enumerate all gradual items
-        Gamma[frozenset([i])] = utils.cover(i, data)
+        Gamma[frozenset([i])] = list(utils.cover(i, data))
 
     return MFSP(Gamma, k, minSup)
 
@@ -237,16 +237,12 @@ def brute_force(data, k, minSup, format='season'):
     N, I = data.shape
     M = N//k
 
-    verboseprint = print if verbose else lambda *a, **k: None
-
-    verboseprint("Beginning of Brute Force:", M, k, I, minSup)
+    print("Beginning of Brute Force:", M, k, I, minSup)
     if format == 'season':
         results = dict()
         for start in range(k): # enumerate all seasons
             results[start] = dict()
             for length in range(1, k+1):
-                results[start][length] = set()
-
                 # enumerate all gradual patterns
                 grad_patterns = chain.from_iterable(combinations(range(2*I), l)
                                                     for l in range(1, 2*I+1))
@@ -255,20 +251,26 @@ def brute_force(data, k, minSup, format='season'):
                 for pattern in grad_patterns:
                     if utils.check_pattern((start, length), set(pattern),
                                            data.reshape((M,k,I)), minSup):
-                        results[start][length].add(frozenset(pattern))
+                        if results[start].get(length):
+                            results[start][length].add(frozenset(pattern))
+                        else:
+                            results[start][length] = {frozenset(pattern)}
 
     else:
         results = dict()
 
         grad_patterns = chain.from_iterable(combinations(range(2*I), l)
                                                          for l in range(1, 2*I+1))
-        for p in grad_patterns:  # enumerate all gradual patterns
-            results[p] = set()
+        for pattern in grad_patterns:  # enumerate all gradual patterns
+            p = frozenset(pattern)
             for start in range(k):  # enumerate all seasons
                 for length in range(1, k+1):
                     if utils.check_pattern((start, length), set(p),
                                            data.reshape((M, k, I)), minSup):
-                        results[p].add((start, length))
+                        if results.get(p):
+                            results[p].add((start, length))
+                        else:
+                            results[p] = {(start, length)}
 
-    verboseprint("End of Brute Force")
+    print("End of Brute Force")
     return results

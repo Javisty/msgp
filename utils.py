@@ -142,4 +142,4 @@ def cover(i, data):
     if i < I:  # increase
         return np.where(np.diff(data[:,i]) >= 0)[0]
     else:  # decrease
-        return np.where(np.diff(data[:,I-i]) < 0)[0]
+        return np.where(np.diff(data[:,i-I]) < 0)[0]
