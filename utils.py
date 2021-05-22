@@ -92,6 +92,16 @@ def check_results_seasons(data, results, minSup):
     print("Numbers of fail:", len(failed))
     return failed
 
+def check_results_patterns(data, results, minSup):
+    failed = set()
+    for pattern, seasons in results.items():
+        for season in seasons:
+            start, l = season
+            if not check_pattern((start, l), pattern, data, minSup):
+                failed.add((start, l, pattern))
+    print("Numbers of fail:", len(failed))
+    return failed
+
 def check_testcases(dirpath, algo, minSup):
     failed = set()
     for testcase in listdir(dirpath):
