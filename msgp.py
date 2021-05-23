@@ -120,21 +120,24 @@ def CFS(w, k, m):
     '''We suppose m != 1'''
     if not w:
         return set()
-    l = 1
-    sub = w[0]
-    occ = dict()
 
+    sub = w[0]
+    occ = dict([((start, 1), 0) for start in range(k)])
+    occ[(sub, 1)] = 1
+
+    l = 1
     for i in w[1:]:
+        occ[(i, 1)] += 1
         if (i != (sub+l)%k):
             l = 1
             sub = i
         else:
             for j in range(l):
-                if ((sub+j)%k, l-j) in occ:
-                    occ[((sub+j)%k, l-j)] += 1
+                if ((sub+j)%k, l-j+1) in occ:
+                    occ[((sub+j)%k, l-j+1)] += 1
                 else:
-                    occ[((sub+j)%k, l-j)] = 1
-            if l == k:
+                    occ[((sub+j)%k, l-j+1)] = 1
+            if l == k-1:
                 sub = (sub+1)%k
             else:
                 l += 1
