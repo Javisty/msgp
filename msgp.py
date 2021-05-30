@@ -52,13 +52,11 @@ def MFCCP(Gamma, k, minSup, verbose):
     l = 1
     to_visit = range(k)
 
-    garb = dict([(i, dict()) for i in range(k)])
     utils.remove_non_frequent(Gamma, minSup)
     while to_visit and l <= k:
         psi = deepcopy(Gamma)
         Lambda = list()
         for i in to_visit:
-            garb[i][l] = Gamma[i, :, :].copy()
             patterns = MFI(Gamma[i], minSup)
             if patterns:
                 Lambda.append(i)
@@ -73,7 +71,7 @@ def MFCCP(Gamma, k, minSup, verbose):
         to_visit = Lambda[:]
 
     verboseprint("End of MSGP_seasons")
-    return res, garb
+    return res
 
 def MSGP_seasons(data, minSup, verbose=True):
     '''
