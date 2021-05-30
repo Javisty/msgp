@@ -29,6 +29,7 @@ This dataset contains 389 cycles, each cycle contains 24 observations over 13 at
 
 This section is about the approach by seasons `MSGP_seasons`.
 
+The input database should be a 3D numpy array: first dimension for cycles, second for stages inside cycles, last for attributes.
 The graduality of an attribute is encoded by 1 if increasing, -1 if decreasing and 0 otherwise.
 A transaction database collection (`Gamma`) is encoded as a 3D numpy array ((k, M, I)).
 First dimension corresponds to a starting stage for the season considered (e.g. 2 when starting at the third stage of the cycle).
@@ -43,4 +44,11 @@ To run the function over the Air Quality dataset, one simply has to load data `d
 
 ### Gradual patterns
 
-This second approach hasn't been implemented.
+This section is about the approach by gradual patterns`'MSGP_patterns`.
+
+The input database should be a 2D numpy array: first dimension for observations, second for attributes. The cycle length `k` is passed as an argument.
+Gradual patterns are encoded as previously. A season is described as a tuple (starting_stage, length).
+The time signatures are stored in a dictionary, as a list of indices.
+'CFS' function returns the set of seasons from such a time signature.
+
+Same procedure to use the algorithm, with `MSGP_patterns(data, k, minSup)`
