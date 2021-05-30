@@ -3,6 +3,7 @@ Implementation of the second proposal of MSGP
 '''
 import numpy as np
 from itertools import chain, combinations
+from copy import deepcopy
 import utils
 
 
@@ -51,25 +52,28 @@ def MFCCP(Gamma, k, minSup, verbose):
     l = 1
     to_visit = range(k)
 
+    garb = dict([(i, dict()) for i in range(k)])
     utils.remove_non_frequent(Gamma, minSup)
     while to_visit and l <= k:
+        psi = deepcopy(Gamma)
         Lambda = list()
         for i in to_visit:
+            garb[i][l] = Gamma[i, :, :].copy()
             patterns = MFI(Gamma[i], minSup)
             if patterns:
                 Lambda.append(i)
                 res[i][l] = patterns.copy()
             if i == k-1:  # handle inter-season difficulty
-                Gamma[i] = intersect(Gamma[i], np.vstack((Gamma[0][1:,:], np.zeros((1,I)))))
+                Gamma[i] = intersect(psi[i], np.vstack((psi[0][1:,:], np.zeros((1,I)))))
             else:
-                Gamma[i] = intersect(Gamma[i], Gamma[i+1])
+                Gamma[i] = intersect(psi[i], psi[i+1])
         verboseprint("Size", l, "done.", len(to_visit),
               "candidates to visit for size ", l+1, end='\r')
         l +=1
         to_visit = Lambda[:]
 
     verboseprint("End of MSGP_seasons")
-    return res
+    return res, garb
 
 def MSGP_seasons(data, minSup, verbose=True):
     '''
@@ -102,14 +106,14 @@ def MSGP_seasons(data, minSup, verbose=True):
     Gamma = np.zeros((k, M, I), dtype=np.int8)
     verboseprint("Initialization...", end='\r')
     for stage in range(k):
-        for season in range(M):
+        for cycle in range(M):
             if stage != k-1:
-                Gamma[stage, season] = utils.get_gradual_items(data[season, [stage, (stage+1)%k]])
+                Gamma[stage, cycle, :] = utils.get_gradual_items(data[cycle, [stage, stage+1], :])
             else:  # special treatment for last stage
-                if season != M-1:  # use first stage of next season
-                    Gamma[stage, season] = utils.get_gradual_items(np.vstack((data[season, stage, :], data[season+1, 0, :])))
+                if cycle != M-1:  # use first stage of next season
+                    Gamma[stage, cycle, :] = utils.get_gradual_items(np.vstack((data[cycle, stage, :], data[cycle+1, 0, :])))
                 else:  # for last stage of last season, no data
-                    Gamma[stage, season] = np.zeros(I)
+                    Gamma[stage, cycle, :] = np.zeros(I)
 
     verboseprint("Starting BFS", end='\r')
     return MFCCP(Gamma, k, minSup, verbose)
@@ -169,7 +173,7 @@ def MFSP(Gamma, k, minSup):
         candidates = psi
         l += 1
 
-    return results, Gamma
+    return results
 
 def MSGP_patterns(data, k, minSup, verbose=True):
     '''

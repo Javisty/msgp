@@ -121,7 +121,7 @@ def compare_results_seasons(res1, res2):
     diff = set()
     for start, length in res1.items():
         for l, patterns in length.items():
-            if not (patterns == res2[start][l]):
+            if (res2.get(start)) and not (patterns == res2[start].get(l)):
                 diff.add((start, l))
     return diff
 
