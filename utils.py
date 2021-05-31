@@ -143,6 +143,11 @@ def count_patterns_seasons(patterns):
     return sum([ sum([ len(k) for k in start.values() ])
                   for start in patterns.values()])
 
+def count_patterns_patterns(patterns):
+    '''Return the number of patterns contained in patterns,
+    with the result format of MSGP_patterns'''
+    return sum([ len(seasons) for seasons in patterns.values()])
+
 def cover(i, data):
     '''Returns the list of timestamps such that i is respected on the
     following transition.
