@@ -1,7 +1,5 @@
 # Mining Seasonal Gradual Patterns
 
-Author: Aymeric CÔME, November 2020 - April 2021
-
 ## About the project
 
 These pieces of codes are the implementation of the algorithms I designed for extracting frequent seasonal gradual patterns from a temporal database.
