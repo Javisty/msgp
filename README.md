@@ -9,7 +9,16 @@ The pseudo-codes are given in the report I wrote; it hasn't been uploaded yet, b
 
 ## Requirements
 
-The code has been written and tested in Python 3.9.2, and uses Numpy 1.20.1.
+The code has been written and tested in **Python 3.9.2**, and uses **Numpy 1.20.1**.
+
+## Main features
+
+Two efficient algorithms for extracting frequent seasonal gradual patterns, `MSGP_seasons` and `MSGP_patterns`.
+
+## Quick example
+
+- Iterating over gradual pattern size, using time signatures: `python run_patterns.py`. Output maps every gradual pattern to the set of respective frequent seasons.
+- Iterating over season size, using gradual signatures: `python run_seasons.py`. Output maps every season to the set of respective frequent gradual patterns.
 
 ## Documentation
 
@@ -38,7 +47,7 @@ A gradual pattern is encoded as a (frozen)set: increasing attributes are specifi
 The results are stored in a dictionary of dictionaries, mapping each starting stage and length (which defines a season) to the set of according frequent gradual patterns (res[start][k] = patterns).
 There is a difficulty in the algorithm, when considering inter-season periods: indeed, to compute the corresponding gradual signature one has to fetch data from the following season. This must be considered at the initialization, and in the intersection.
 
-To run the function over the Air Quality dataset, one simply has to load data `data = np.load('AirQualityUCI.npy)` and then `MSGP_seasons(data.reshape((389, 24, 13)), minSup)`.
+To run the function over the Air Quality dataset, one simply has to load data `data = np.load('AirQualityUCI.npy')` and then `MSGP_seasons(data.reshape((389, 24, 13)), minSup)`.
 
 ### Gradual patterns
 
