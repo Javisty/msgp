@@ -37,15 +37,53 @@ def MFI(data, minSup):
         l += 1
     return results
 
+def MFCI(data, minSup):
+    '''Implementation of the Eclat-Close algorithm , for gradual signature.
+    data is a gradual signature, of shape (M, I), with -1/0/1 values'''
+    _, I = data.shape
+
+    # Find frequent gradual items
+    increasing_items = np.where(np.count_nonzero(data == 1, axis=0) >= minSup)[0]
+    decreasing_items = np.where(np.count_nonzero(data == -1, axis=0) >= minSup)[0]
+
+    # gradual itemsets are indexed from 0 to (2*I-1)
+    itemsets = [ (frozenset({i}), frozenset(np.where(data[:,i]==1)[0])) for i in increasing_items ]\
+        + [ (frozenset({I+i}), frozenset(np.where(data[:,i]==-1)[0])) for i in decreasing_items ]
+
+    # mapping t-IDset to closure set
+    hash_table = {tidset: item for item, tidset in itemsets}
+
+    l = 2
+    while itemsets and l <= I:
+        new_itemsets = list()
+        for idx, (itemset, tids) in enumerate(itemsets):
+            for idx2 in range(idx+1, len(itemsets)):
+                itemset2, tids2 = itemsets[idx2]
+                if sorted(list(itemset))[:l-2] == sorted(list(itemset2))[:l-2]:
+                    intersect_tid = tids.intersection(tids2)
+                    union_items = itemset.union(itemset2)
+                    if len(intersect_tid) >= minSup:
+                        if intersect_tid in hash_table:
+                            hash_table[intersect_tid] = hash_table[intersect_tid].union(union_items)
+                        else:
+                            hash_table[intersect_tid] = union_items
+
+                        new_itemsets.append((union_items, intersect_tid))
+        itemsets = new_itemsets
+        l += 1
+    return set(hash_table.values())
+
 def intersect(data1, data2):
     '''Returns the intersected transaction database.'''
     res = data1.copy()
     res[data1 != data2] = 0
     return res
 
-def MFCCP(Gamma, k, minSup, verbose):
+def MFCCP(Gamma, k, minSup, closed, verbose):
     # In case of verbose
     verboseprint = print if verbose else lambda *a, **k: None
+    # Frequent or Closed Frequent itemsets
+    pattern_miner = MFCI if closed else MFI
 
     res = dict([(i, dict()) for i in range(k)])
     M, I = Gamma.shape[1:]
@@ -57,7 +95,7 @@ def MFCCP(Gamma, k, minSup, verbose):
         psi = deepcopy(Gamma)
         Lambda = list()
         for i in to_visit:
-            patterns = MFI(Gamma[i], minSup)
+            patterns = pattern_miner(Gamma[i], minSup)
             if patterns:
                 Lambda.append(i)
                 res[i][l] = patterns.copy()
@@ -73,7 +111,7 @@ def MFCCP(Gamma, k, minSup, verbose):
     verboseprint("End of MSGP_seasons")
     return res
 
-def MSGP_seasons(data, minSup, verbose=True):
+def MSGP_seasons(data, minSup, closed=False, verbose=True):
     '''
     Mining Seasonal Gradual Pattern. Returns all the frequent seasonal
     gradual patterns in data.
@@ -88,6 +126,9 @@ def MSGP_seasons(data, minSup, verbose=True):
 
     minSup (integer): the minimum number of seasons where a pattern
     should occur to be frequent.
+
+    closed (boolean): if True return only closed gradual patterns with respect
+    to seasons.
 
     Output:
     -------
@@ -114,7 +155,7 @@ def MSGP_seasons(data, minSup, verbose=True):
                     Gamma[stage, cycle, :] = np.zeros(I)
 
     verboseprint("Starting BFS", end='\r')
-    return MFCCP(Gamma, k, minSup, verbose)
+    return MFCCP(Gamma, k, minSup, closed, verbose)
 
 ##################### Second algorithm #####################
 
